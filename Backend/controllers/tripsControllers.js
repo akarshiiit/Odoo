@@ -10,7 +10,7 @@ exports.getTrips = async (req, res) => {
   try {
     const trips = await prisma.trip.findMany({
       include: { vehicle: true, driver: true },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
     });
     res.json({ success: true, trips });
   } catch (error) {

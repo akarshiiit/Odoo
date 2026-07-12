@@ -38,9 +38,13 @@ export default function Trips() {
         setTrips(tripsRes.trips.map(mapTripData))
       }
       
-      if (vehiclesRes.success && vehiclesRes.vehicles) {
+      let vList = []
+      if (Array.isArray(vehiclesRes)) vList = vehiclesRes
+      else if (vehiclesRes && vehiclesRes.success && vehiclesRes.vehicles) vList = vehiclesRes.vehicles
+      
+      if (vList.length > 0) {
         // filter for UI
-        setVehicles(vehiclesRes.vehicles.filter(v => !['Retired', 'In Shop', 'On Trip'].includes(v.status)))
+        setVehicles(vList.filter(v => !['Retired', 'In Shop', 'On Trip'].includes(v.status)))
       }
       
       let drvList = []
