@@ -99,9 +99,6 @@ const createVehicle = async (req, res) => {
     }
 };
 
-
-
-
 // Get all Vehicles
 const getVehicles = async (req, res) => {
 
@@ -138,9 +135,6 @@ const getVehicles = async (req, res) => {
     }
 
 };
-
-
-
 
 // Get Single Vehicle
 const getVehicle = async (req, res) => {
@@ -195,9 +189,6 @@ const getVehicle = async (req, res) => {
     }
 
 };
-
-
-
 
 // Update Vehicle
 const updateVehicle = async (req, res) => {
@@ -345,9 +336,6 @@ const updateVehicle = async (req, res) => {
 
 };
 
-
-
-
 // Delete Vehicle
 const deleteVehicle = async (req, res) => {
 
@@ -413,8 +401,6 @@ const deleteVehicle = async (req, res) => {
     }
 
 };
-
-
 
 module.exports = {
 
