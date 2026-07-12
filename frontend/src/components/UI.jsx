@@ -6,12 +6,12 @@ export const GradientBanner = ({ title, subtitle, children }) => (
   >
     <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10 pointer-events-none"
       style={{ background: 'radial-gradient(circle, #fff, transparent 70%)' }} />
-    <div className="flex items-center justify-between relative z-10">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-        {subtitle && <p className="text-white/65 text-sm mt-0.5">{subtitle}</p>}
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{title}</h2>
+        {subtitle && <p className="text-white/65 text-xs sm:text-sm mt-0.5">{subtitle}</p>}
       </div>
-      <div className="flex items-center gap-2">{children}</div>
+      <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">{children}</div>
     </div>
   </div>
 )
