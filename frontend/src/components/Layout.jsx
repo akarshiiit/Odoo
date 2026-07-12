@@ -40,6 +40,8 @@ const navLinks = [
 
 function Sidebar() {
   const { dark, toggle } = useTheme()
+  const { user } = useAuth()
+  const initial = (user?.name || 'U')[0].toUpperCase()
   return (
     <aside className="w-64 h-screen flex flex-col sticky top-0 hidden md:flex shadow-xl" style={{ background: '#432c3d' }}>
       {/* Logo */}
@@ -71,16 +73,16 @@ function Sidebar() {
 
       {/* User footer */}
       <div className="p-4 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">R</div>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{initial}</div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">Raven K.</p>
-            <p className="text-xs text-white/55 truncate">Dispatcher</p>
+            <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
+            <p className="text-xs text-white/55 truncate">{user?.role || 'No role'}</p>
           </div>
         </div>
         <button 
           onClick={toggle}
-          className="p-1.5 rounded-lg text-white/65 hover:bg-white/10 hover:text-white transition-colors"
+          className="p-1.5 rounded-lg text-white/65 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
           aria-label="Toggle Theme"
         >
           {dark ? (
@@ -100,8 +102,9 @@ function Sidebar() {
 
 function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const navigate = useNavigate()
+  const initial = (user?.name || 'U')[0].toUpperCase()
 
   const handleLogout = () => {
     logout()
@@ -138,7 +141,7 @@ function Header() {
             className="h-9 w-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm cursor-pointer transition-transform hover:scale-105" 
             style={{ background: 'linear-gradient(135deg, #714b67, #432c3d)' }}
           >
-            R
+            {initial}
           </button>
           
           {isDropdownOpen && (
