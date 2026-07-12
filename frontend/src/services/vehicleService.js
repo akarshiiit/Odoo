@@ -5,27 +5,23 @@ import api from "./api";
 
 export const getVehicles = async () => {
 
-    return await api("/vehicle");
+    return await api("/vehicles");
 
 };
-
-
 
 // Get single vehicle
 
 export const getVehicle = async (id) => {
 
-    return await api(`/vehicle/${id}`);
+    return await api(`/vehicles/${id}`);
 
 };
-
-
 
 // Create vehicle
 
 export const createVehicle = async (vehicleData) => {
 
-    return await api("/vehicle", {
+    return await api("/vehicles", {
 
         method: "POST",
 
@@ -41,7 +37,7 @@ export const createVehicle = async (vehicleData) => {
 
 export const updateVehicle = async (id, vehicleData) => {
 
-    return await api(`/vehicle/${id}`, {
+    return await api(`/vehicles/${id}`, {
 
         method: "PUT",
 
@@ -57,7 +53,7 @@ export const updateVehicle = async (id, vehicleData) => {
 
 export const deleteVehicle = async (id) => {
 
-    return await api(`/vehicle/${id}`, {
+    return await api(`/vehicles/${id}`, {
 
         method: "DELETE",
 

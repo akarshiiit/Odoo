@@ -3,100 +3,76 @@ const { Prisma } = require("@prisma/client");
 
 
 // Create Vehicle
-const createVehicle = async (req, res) => {
-
-    try {
-
+const createVehicle = async(req,res)=>{
+    try{
         const {
-            registration_number,
-            vehicle_name,
-            vehicle_type,
+            registration_no,
+            name,
+            type,
             max_load_capacity,
             odometer,
             acquisition_cost,
             status
         } = req.body;
 
-
-        // Check duplicate registration number
         const existing = await prisma.vehicle.findUnique({
-            where: {
-                registration_no: registration_number
+
+            where:{
+                registration_no
             }
+
         });
 
+        if(existing){
 
-        if (existing) {
             return res.status(400).json({
-                message: "Registration number already exists"
+                message:"Registration number already exists"
             });
+
         }
-
-
-        // Allowed Status
-        const allowedStatus = [
-            "Available",
-            "On Trip",
-            "In Shop",
-            "Retired"
-        ];
-
-
-        if (status && !allowedStatus.includes(status)) {
-            return res.status(400).json({
-                message: `Invalid status. Status must be one of: ${allowedStatus.join(", ")}`
-            });
-        }
-
-
 
         const vehicle = await prisma.vehicle.create({
 
-            data: {
-
-                registration_no: registration_number,
-
-                name: vehicle_name,
-
-                type: vehicle_type,
-
-                max_load_capacity: new Prisma.Decimal(max_load_capacity),
-
-                odometer: new Prisma.Decimal(odometer ?? 0),
-
-                acquisition_cost: new Prisma.Decimal(acquisition_cost),
-
-                status: status ?? "Available"
+            data:{
+                registration_no,
+                name,
+                type,
+                max_load_capacity:
+                    new Prisma.Decimal(max_load_capacity),
+                odometer:
+                    odometer 
+                    ? new Prisma.Decimal(odometer)
+                    : 0,
+                acquisition_cost:
+                    new Prisma.Decimal(acquisition_cost),
+                status: status || "Available"
 
             }
 
         });
-
-
-
+        
         res.status(201).json({
 
-            success: true,
-
-            message: "Vehicle created successfully",
+            success:true,
 
             vehicle
 
         });
 
 
+    }
+    catch(error){
 
-    } catch (error) {
+        console.log(error);
 
         res.status(500).json({
 
-            success: false,
-
-            message: error.message
+            message:error.message
 
         });
 
     }
+
 };
 
 // Get all Vehicles
