@@ -37,6 +37,16 @@ const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  // Update user profile locally (name, email, phone etc.)
+  const updateUser = useCallback((updates) => {
+    setUser(prev => {
+      const updated = { ...prev, ...updates };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      if (updates.role) setRole(updates.role);
+      return updated;
+    });
+  }, []);
+
   
   const login = useCallback(async (credentials) => {
     setLoading(true);
@@ -156,6 +166,7 @@ const AuthProvider = ({ children }) => {
     signup,
     logout,
     checkAuth,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
