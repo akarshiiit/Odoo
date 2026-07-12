@@ -1,4 +1,7 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useTheme } from './ThemeContext'
 
 const navLinks = [
   {
@@ -36,8 +39,11 @@ const navLinks = [
 ]
 
 function Sidebar() {
+  const { dark, toggle } = useTheme()
+  const { user } = useAuth()
+  const initial = (user?.name || 'U')[0].toUpperCase()
   return (
-    <aside className="w-64 h-screen flex flex-col sticky top-0 hidden md:flex shadow-xl" style={{ background: 'linear-gradient(180deg, #714b67 0%, #432c3d 100%)' }}>
+    <aside className="w-64 h-screen flex flex-col sticky top-0 hidden md:flex shadow-xl" style={{ background: '#432c3d' }}>
       {/* Logo */}
       <div className="h-16 flex items-center px-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <span className="text-xl font-bold text-white tracking-wide">TransitOps</span>
@@ -52,8 +58,8 @@ function Sidebar() {
             className={({ isActive }) =>
               `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 isActive
-                  ? 'bg-white/20 text-white shadow-sm'
-                  : 'text-white/65 hover:bg-white/10 hover:text-white'
+                  ? 'bg-[#714b67] text-white shadow-sm'
+                  : 'text-white/65 hover:bg-[#714b67] hover:text-white'
               }`
             }
           >
@@ -66,22 +72,47 @@ function Sidebar() {
       </nav>
 
       {/* User footer */}
-      <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">R</div>
+      <div className="p-4 flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{initial}</div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">Raven K.</p>
-            <p className="text-xs text-white/55 truncate">Dispatcher</p>
+            <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
+            <p className="text-xs text-white/55 truncate">{user?.role || 'No role'}</p>
           </div>
         </div>
+        <button 
+          onClick={toggle}
+          className="p-1.5 rounded-lg text-white/65 hover:bg-white/10 hover:text-white transition-colors flex-shrink-0"
+          aria-label="Toggle Theme"
+        >
+          {dark ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          )}
+        </button>
       </div>
     </aside>
   )
 }
 
 function Header() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const { logout, user } = useAuth()
+  const navigate = useNavigate()
+  const initial = (user?.name || 'U')[0].toUpperCase()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
+
   return (
-    <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
+    <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6 sticky top-0 z-10 shadow-sm">
       <div className="flex items-center w-full max-w-sm">
         <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -92,7 +123,7 @@ function Header() {
           <input
             type="text"
             placeholder="Search..."
-            className="block w-full pl-10 pr-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground placeholder-muted-foreground transition-all"
+            className="block w-full pl-10 pr-3 py-2 border border-border rounded-lg text-sm bg-transparent text-foreground placeholder-muted-foreground transition-all focus:bg-background"
           />
         </div>
       </div>
@@ -104,7 +135,26 @@ function Header() {
           </svg>
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary"></span>
         </button>
-        <div className="h-9 w-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm" style={{ background: 'linear-gradient(135deg, #714b67, #432c3d)' }}>R</div>
+        <div className="relative">
+          <button 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="h-9 w-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm cursor-pointer transition-transform hover:scale-105" 
+            style={{ background: 'linear-gradient(135deg, #714b67, #432c3d)' }}
+          >
+            {initial}
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-200">
+              <button 
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+              >
+                Log Out
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

@@ -1,46 +1,103 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GradientBanner, Card } from '../components/UI'
+import { getFuelLogs, createFuelLog } from '../services/fuelService'
+import { getVehicles } from '../services/vehicleService'
+import { getMaintainenceLogs } from '../services/maintainenceService'
 
 const STATUS_STYLES = {
   'Available':  { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
   'Completed':  { bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' },
   'On Trip':    { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
+  'Active':     { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
+  'In Shop':    { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
 }
 
-const INITIAL_FUEL = [
-  { vehicle: 'VAN-05',   date: '05 Jul 2026', liters: '42 L',  amount: 3150 },
-  { vehicle: 'TRUCK-11', date: '06 Jul 2026', liters: '110 L', amount: 9400 },
-  { vehicle: 'MINI-09',  date: '06 Jul 2026', liters: '28 L',  amount: 2050 },
-]
-
-const INITIAL_EXPENSES = [
-  { trip: 'TR001', vehicle: 'VAN-05',   toll: 120, other: 0,   maintLinked: 0,      status: 'Available' },
-  { trip: 'TR001', vehicle: 'TRK-12',   toll: 340, other: 150, maintLinked: 18000,  status: 'Completed' },
-]
-
 export default function FuelExpenses() {
-  const [fuel, setFuel] = useState(INITIAL_FUEL)
-  const [expenses, setExpenses] = useState(INITIAL_EXPENSES)
+  const [fuel, setFuel] = useState([])
+  const [expenses, setExpenses] = useState([])
+  const [vehicles, setVehicles] = useState([])
+
   const [showFuelModal, setShowFuelModal] = useState(false)
   const [showExpModal, setShowExpModal] = useState(false)
-  const [fuelForm, setFuelForm] = useState({ vehicle: 'VAN-05', date: '', liters: '', amount: '' })
-  const [expForm, setExpForm] = useState({ trip: '', vehicle: 'VAN-05', toll: '', other: '', status: 'Available' })
+  
+  const [fuelForm, setFuelForm] = useState({ vehicle: '', date: '', liters: '', amount: '' })
+  const [expForm, setExpForm] = useState({ trip: '', vehicle: '', toll: '', other: '', status: 'Available' })
 
-  function addFuel() {
-    if (!fuelForm.date || !fuelForm.liters || !fuelForm.amount) return
-    setFuel(p => [...p, { ...fuelForm, liters: fuelForm.liters + ' L', amount: parseFloat(fuelForm.amount) }])
-    setShowFuelModal(false)
-    setFuelForm({ vehicle: 'VAN-05', date: '', liters: '', amount: '' })
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      const [fuelRes, maintRes, vehiclesRes] = await Promise.all([
+        getFuelLogs(), getMaintainenceLogs(), getVehicles()
+      ])
+
+      // Vehicles
+      let vList = []
+      if (vehiclesRes.success && vehiclesRes.vehicles) {
+        vList = vehiclesRes.vehicles
+        setVehicles(vList)
+      }
+
+      // Fuel Logs
+      if (Array.isArray(fuelRes)) {
+        setFuel(fuelRes)
+      } else if (fuelRes && fuelRes.logs) {
+        setFuel(fuelRes.logs)
+      }
+
+      // Maintenance Logs (Mapped to Expenses)
+      if (maintRes.success && maintRes.logs) {
+        const maintExpenses = maintRes.logs.map(m => ({
+          trip: 'Maint. Log',
+          vehicle: m.vehicle ? (m.vehicle.name || m.vehicle.registration_no) : `V-${m.vehicle_id}`,
+          toll: 0,
+          other: 0,
+          maintLinked: parseFloat(m.cost) || 0,
+          status: m.status
+        }))
+        setExpenses(maintExpenses)
+      }
+
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    }
+  }
+
+  async function addFuel() {
+    if (!fuelForm.vehicle || !fuelForm.liters || !fuelForm.amount) return
+    
+    try {
+      const res = await createFuelLog({
+        vehicleId: fuelForm.vehicle,
+        liters: parseFloat(fuelForm.liters),
+        cost: parseFloat(fuelForm.amount),
+        tolls: 0
+      })
+      
+      setShowFuelModal(false)
+      setFuelForm({ vehicle: '', date: '', liters: '', amount: '' })
+      fetchData()
+    } catch (err) {
+      console.error("Failed to add fuel:", err)
+    }
   }
 
   function addExpense() {
     if (!expForm.trip) return
-    setExpenses(p => [...p, { ...expForm, toll: parseFloat(expForm.toll) || 0, other: parseFloat(expForm.other) || 0, maintLinked: 0 }])
+    // Without an expense backend, just locally append for demo
+    setExpenses(p => [...p, { 
+      ...expForm, 
+      toll: parseFloat(expForm.toll) || 0, 
+      other: parseFloat(expForm.other) || 0, 
+      maintLinked: 0 
+    }])
     setShowExpModal(false)
-    setExpForm({ trip: '', vehicle: 'VAN-05', toll: '', other: '', status: 'Available' })
+    setExpForm({ trip: '', vehicle: '', toll: '', other: '', status: 'Available' })
   }
 
-  const totalFuel = fuel.reduce((a, f) => a + (parseFloat(String(f.amount).replace(/,/g,'')) || 0), 0)
+  const totalFuel = fuel.reduce((a, f) => a + (parseFloat(f.cost) || 0), 0)
   const totalExp  = expenses.reduce((a, e) => a + (e.toll||0) + (e.other||0) + (e.maintLinked||0), 0)
   const grandTotal = totalFuel + totalExp
 
@@ -101,12 +158,19 @@ export default function FuelExpenses() {
               </tr>
             </thead>
             <tbody>
+              {fuel.length === 0 && (
+                <tr><td colSpan="4" className="px-5 py-4 text-center text-muted-foreground">No fuel logs found.</td></tr>
+              )}
               {fuel.map((f, i) => (
                 <tr key={i} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
-                  <td className="px-5 py-3 font-semibold" style={{ color: '#714b67' }}>{f.vehicle}</td>
-                  <td className="px-5 py-3 text-muted-foreground text-xs">{f.date}</td>
-                  <td className="px-5 py-3 text-foreground">{f.liters}</td>
-                  <td className="px-5 py-3 font-semibold text-foreground">₹{typeof f.amount === 'number' ? f.amount.toLocaleString('en-IN') : f.amount}</td>
+                  <td className="px-5 py-3 font-semibold" style={{ color: '#714b67' }}>
+                    {f.vehicle ? (f.vehicle.name || f.vehicle.registration_no) : `V-${f.vehicleId}`}
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground text-xs">
+                    {new Date(f.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-5 py-3 text-foreground">{f.liters} L</td>
+                  <td className="px-5 py-3 font-semibold text-foreground">₹{parseFloat(f.cost).toLocaleString('en-IN')}</td>
                 </tr>
               ))}
             </tbody>
@@ -130,6 +194,9 @@ export default function FuelExpenses() {
               </tr>
             </thead>
             <tbody>
+              {expenses.length === 0 && (
+                <tr><td colSpan="7" className="px-4 py-4 text-center text-muted-foreground">No expenses found.</td></tr>
+              )}
               {expenses.map((e, i) => {
                 const total = (e.toll||0) + (e.other||0) + (e.maintLinked||0)
                 const s = STATUS_STYLES[e.status] || STATUS_STYLES['Available']
@@ -173,7 +240,8 @@ export default function FuelExpenses() {
             <div className="space-y-3">
               <div><label className={labelCls}>Vehicle</label>
                 <select value={fuelForm.vehicle} onChange={e => setFuelForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
-                  {['VAN-05','TRUCK-11','MINI-09','VAN-09'].map(v => <option key={v}>{v}</option>)}
+                  <option value="">Select vehicle...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.name || v.registration_no || v.id}</option>)}
                 </select>
               </div>
               <div><label className={labelCls}>Date</label><input type="date" value={fuelForm.date} onChange={e => setFuelForm(p => ({...p, date: e.target.value}))} className={inputCls}/></div>
@@ -199,7 +267,8 @@ export default function FuelExpenses() {
               <div><label className={labelCls}>Trip ID</label><input placeholder="e.g. TR001" value={expForm.trip} onChange={e => setExpForm(p => ({...p, trip: e.target.value}))} className={inputCls}/></div>
               <div><label className={labelCls}>Vehicle</label>
                 <select value={expForm.vehicle} onChange={e => setExpForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
-                  {['VAN-05','TRUCK-11','MINI-09','VAN-09'].map(v => <option key={v}>{v}</option>)}
+                  <option value="">Select vehicle...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.name || v.registration_no || v.id}>{v.name || v.registration_no || v.id}</option>)}
                 </select>
               </div>
               <div><label className={labelCls}>Toll (₹)</label><input type="number" placeholder="0" value={expForm.toll} onChange={e => setExpForm(p => ({...p, toll: e.target.value}))} className={inputCls}/></div>

@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GradientBanner, Card } from '../components/UI'
+import { getTrips, createTrip, completeTrip, cancelTrip } from '../services/tripServce'
+import { getVehicles } from '../services/vehicleService'
+import { getDrivers } from '../services/driverService'
 
-const LIFECYCLE = ['Draft', 'Dispatched', 'Completed', 'Cancelled']
+// LIFECYCLE will be dynamic now
 const STATUS_STYLES = {
   'Draft':      { bg: '#f3f4f6', color: '#374151', border: '#d1d5db' },
   'Dispatched': { bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' },
@@ -9,50 +12,127 @@ const STATUS_STYLES = {
   'Cancelled':  { bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
 }
 
-// Only available vehicles (not In Shop / Retired)
-const AVAILABLE_VEHICLES = [
-  { id: 'VAN-05',   capacity: 500 },
-  { id: 'VAN-09',   capacity: 850 },
-]
-const AVAILABLE_DRIVERS = ['Alex', 'Suresh']
-
-const INITIAL_TRIPS = [
-  { id: 'TR001', source: 'Gandhinagar Depot', dest: 'Ahmedabad Hub',       vehicle: 'VAN-05',    driver: 'Alex',   status: 'Dispatched', eta: '45 min' },
-  { id: 'TR004', source: 'Vatva Industrial Area', dest: 'Sanand Warehouse', vehicle: 'TRUCK-04',  driver: 'Suresh', status: 'Draft',      eta: 'Awaiting driver' },
-  { id: 'TR006', source: 'Mansa', dest: 'Kalol Depot',                     vehicle: 'Unassigned', driver: 'Alex',  status: 'Cancelled',  eta: 'Vehicle sent for repair' },
-]
-
 export default function Trips() {
-  const [trips, setTrips] = useState(INITIAL_TRIPS)
+  const [trips, setTrips] = useState([])
+  const [vehicles, setVehicles] = useState([])
+  const [drivers, setDrivers] = useState([])
+
   const [form, setForm] = useState({ source: '', dest: '', vehicle: '', driver: '', cargo: '', distance: '' })
   const [validation, setValidation] = useState(null)
   const [activeStep, setActiveStep] = useState(0)
+  const [finalStepLabel, setFinalStepLabel] = useState('Completed')
 
-  function handleDispatch() {
+  const LIFECYCLE = ['Draft', 'Dispatched', finalStepLabel]
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function fetchData() {
+    try {
+      const [tripsRes, vehiclesRes, driversRes] = await Promise.all([
+        getTrips(), getVehicles(), getDrivers()
+      ])
+      
+      if (tripsRes.success && tripsRes.trips) {
+        setTrips(tripsRes.trips.map(mapTripData))
+      }
+      
+      if (vehiclesRes.success && vehiclesRes.vehicles) {
+        // filter for UI
+        setVehicles(vehiclesRes.vehicles.filter(v => !['Retired', 'In Shop', 'On Trip'].includes(v.status)))
+      }
+      
+      let drvList = []
+      if (Array.isArray(driversRes)) drvList = driversRes
+      else if (driversRes.success && driversRes.drivers) drvList = driversRes.drivers
+
+      if (drvList.length > 0) {
+        setDrivers(drvList.filter(d => !['Suspended', 'On Trip'].includes(d.status) && new Date(d.license_expiry) >= new Date()))
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    }
+  }
+
+  function mapTripData(t) {
+    return {
+      dbId: t.id,
+      id: `TR${String(t.id).padStart(3, '0')}`,
+      source: t.source,
+      dest: t.destination,
+      vehicle: t.vehicle ? (t.vehicle.name || t.vehicle.registration_no || t.vehicle.id) : 'Unassigned',
+      driver: t.driver ? t.driver.name : 'Unassigned',
+      status: t.status,
+      eta: t.status === 'Completed' ? 'Arrived' : (t.status === 'Cancelled' ? 'Cancelled' : 'In transit')
+    }
+  }
+
+  async function handleDispatch() {
     if (!form.source || !form.dest || !form.vehicle || !form.driver) {
       setValidation({ type: 'error', msg: 'All fields are required before dispatching.' }); return
     }
     const cargo = parseFloat(form.cargo) || 0
-    const vehicle = AVAILABLE_VEHICLES.find(v => v.id === form.vehicle)
-    if (vehicle && cargo > vehicle.capacity) {
+    const vehicle = vehicles.find(v => String(v.id) === String(form.vehicle))
+    const capacity = vehicle ? parseFloat(vehicle.max_load_capacity || 0) : 0
+    
+    if (vehicle && cargo > capacity) {
       setValidation({
         type: 'capacity',
-        vehicleCap: vehicle.capacity,
+        vehicleCap: capacity,
         cargo,
-        excess: cargo - vehicle.capacity,
+        excess: cargo - capacity,
       })
       return
     }
-    const newTrip = {
-      id: `TR${String(trips.length + 1).padStart(3, '0')}`,
-      source: form.source, dest: form.dest,
-      vehicle: form.vehicle, driver: form.driver,
-      status: 'Dispatched', eta: `${Math.floor(Math.random() * 60) + 20} min`,
+
+    try {
+      const res = await createTrip({
+        source: form.source,
+        destination: form.dest,
+        cargoWeight: form.cargo,
+        plannedDistance: form.distance,
+        vehicleId: form.vehicle,
+        driverId: form.driver
+      })
+
+      if (res.success) {
+        setForm({ source: '', dest: '', vehicle: '', driver: '', cargo: '', distance: '' })
+        setValidation({ type: 'success', msg: `Trip dispatched successfully!` })
+        setActiveStep(1)
+        fetchData()
+      } else {
+        setValidation({ type: 'error', msg: res.error || res.message || 'Failed to dispatch' })
+      }
+    } catch (err) {
+      setValidation({ type: 'error', msg: err.message || 'Failed to dispatch' })
     }
-    setTrips(prev => [newTrip, ...prev])
-    setForm({ source: '', dest: '', vehicle: '', driver: '', cargo: '', distance: '' })
-    setValidation({ type: 'success', msg: `Trip ${newTrip.id} dispatched successfully!` })
-    setActiveStep(1)
+  }
+
+  async function handleComplete(dbId) {
+    try {
+      const res = await completeTrip(dbId, { actualDistance: 0 })
+      if (res.success || res.trip) {
+        setFinalStepLabel('Completed')
+        setActiveStep(2)
+        fetchData()
+      }
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  async function handleCancel(dbId) {
+    try {
+      const res = await cancelTrip(dbId)
+      if (res.success || res.trip) {
+        setFinalStepLabel('Cancelled')
+        setActiveStep(2)
+        fetchData()
+      }
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   const inputCls = "block w-full px-3 py-2.5 border border-border rounded-lg text-sm text-foreground bg-white placeholder:text-muted-foreground focus:outline-none hover:border-primary/40 transition-colors"
@@ -111,14 +191,14 @@ export default function Trips() {
               <label className={labelCls}>Vehicle <span className="normal-case text-[11px] text-green-600 font-normal">(Available only)</span></label>
               <select value={form.vehicle} onChange={e => setForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
                 <option value="">Select vehicle...</option>
-                {AVAILABLE_VEHICLES.map(v => <option key={v.id} value={v.id}>{v.id} — {v.capacity} kg capacity</option>)}
+                {vehicles.map(v => <option key={v.id} value={v.id}>{v.name || v.registration_no || v.id} — {v.max_load_capacity || 0} kg capacity</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Driver <span className="normal-case text-[11px] text-green-600 font-normal">(Available only)</span></label>
               <select value={form.driver} onChange={e => setForm(p => ({...p, driver: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
                 <option value="">Select driver...</option>
-                {AVAILABLE_DRIVERS.map(d => <option key={d}>{d}</option>)}
+                {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -168,10 +248,13 @@ export default function Trips() {
             </span>
           </div>
           <div className="flex-1 space-y-3">
+            {trips.length === 0 && (
+               <p className="text-sm text-muted-foreground text-center py-4">No trips found.</p>
+            )}
             {trips.map((t) => {
               const s = STATUS_STYLES[t.status] || STATUS_STYLES['Draft']
               return (
-                <div key={t.id} className="border border-border rounded-xl p-4 hover:shadow-sm hover:border-primary/30 transition-all">
+                <div key={t.dbId} className="border border-border rounded-xl p-4 hover:shadow-sm hover:border-primary/30 transition-all">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-bold" style={{ color: '#714b67' }}>{t.id}</p>
@@ -182,6 +265,17 @@ export default function Trips() {
                     <div className="text-right text-xs text-muted-foreground flex-shrink-0">
                       <p className="font-medium">{t.vehicle} / {t.driver}</p>
                       <p className="mt-1">{t.eta}</p>
+                      {t.status === 'Dispatched' && (
+                        <div className="mt-2 flex gap-2 justify-end">
+                          <button onClick={() => handleComplete(t.dbId)} className="px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 rounded text-[10px] font-bold uppercase transition-colors">Complete</button>
+                          <button onClick={() => handleCancel(t.dbId)} className="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[10px] font-bold uppercase transition-colors">Cancel</button>
+                        </div>
+                      )}
+                      {t.status === 'Draft' && (
+                        <div className="mt-2 flex gap-2 justify-end">
+                          <button onClick={() => handleCancel(t.dbId)} className="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[10px] font-bold uppercase transition-colors">Cancel</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -198,3 +292,4 @@ export default function Trips() {
     </section>
   )
 }
+
