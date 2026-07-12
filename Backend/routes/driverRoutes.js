@@ -7,7 +7,7 @@ const {
     getDriver,
     updateDriver,
     deleteDriver
-} = require("../controllers/driverController");
+} = require("../controllers/driverControllers");
 
 router.post("/", createDriver);
 router.get("/", getDrivers);

@@ -1,30 +1,37 @@
-const db = require("../config/db");
+const prisma = require("../config/prisma");
+const { Prisma } = require("@prisma/client");
 
+
+// Create Vehicle
 const createVehicle = async (req, res) => {
-
-    const {
-        registration_number,
-        vehicle_name,
-        vehicle_type,
-        max_load_capacity,
-        odometer,
-        acquisition_cost,
-        status
-    } = req.body;
 
     try {
 
-        // Checking if the Registration number exists or not
-        const existing = await db.query(
-            "SELECT * FROM vehicles WHERE registration_number=$1",
-            [registration_number]
-        );
+        const {
+            registration_number,
+            vehicle_name,
+            vehicle_type,
+            max_load_capacity,
+            odometer,
+            acquisition_cost,
+            status
+        } = req.body;
 
-        if (existing.rows.length > 0) {
+
+        // Check duplicate registration number
+        const existing = await prisma.vehicle.findUnique({
+            where: {
+                registration_no: registration_number
+            }
+        });
+
+
+        if (existing) {
             return res.status(400).json({
                 message: "Registration number already exists"
-            })
+            });
         }
+
 
         // Allowed Status
         const allowedStatus = [
@@ -34,6 +41,7 @@ const createVehicle = async (req, res) => {
             "Retired"
         ];
 
+
         if (status && !allowedStatus.includes(status)) {
             return res.status(400).json({
                 message: `Invalid status. Status must be one of: ${allowedStatus.join(", ")}`
@@ -41,188 +49,383 @@ const createVehicle = async (req, res) => {
         }
 
 
-        const result = await db.query(
-            `INSERT INTO vehicles
-            (registration_number,
+
+        const vehicle = await prisma.vehicle.create({
+
+            data: {
+
+                registration_no: registration_number,
+
+                name: vehicle_name,
+
+                type: vehicle_type,
+
+                max_load_capacity: new Prisma.Decimal(max_load_capacity),
+
+                odometer: new Prisma.Decimal(odometer ?? 0),
+
+                acquisition_cost: new Prisma.Decimal(acquisition_cost),
+
+                status: status ?? "Available"
+
+            }
+
+        });
+
+
+
+        res.status(201).json({
+
+            success: true,
+
+            message: "Vehicle created successfully",
+
+            vehicle
+
+        });
+
+
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+};
+
+
+
+
+// Get all Vehicles
+const getVehicles = async (req, res) => {
+
+    try {
+
+        const vehicles = await prisma.vehicle.findMany({
+
+            orderBy: {
+                id: "asc"
+            }
+
+        });
+
+
+        res.status(200).json({
+
+            success: true,
+
+            vehicles
+
+        });
+
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+
+
+
+// Get Single Vehicle
+const getVehicle = async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+
+
+        const vehicle = await prisma.vehicle.findUnique({
+
+            where: {
+                id
+            }
+
+        });
+
+
+        if (!vehicle) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Vehicle not found"
+
+            });
+
+        }
+
+
+        res.status(200).json({
+
+            success: true,
+
+            vehicle
+
+        });
+
+
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+
+
+
+// Update Vehicle
+const updateVehicle = async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+
+
+        const {
+            registration_number,
             vehicle_name,
             vehicle_type,
             max_load_capacity,
             odometer,
             acquisition_cost,
-            status)
-
-            VALUES($1,$2,$3,$4,$5,$6,$7)
-
-            RETURNING *`,
-            [
-                registration_number,
-                vehicle_name,
-                vehicle_type,
-                max_load_capacity,
-                odometer,
-                acquisition_cost,
-                status || "Available"
-            ]
-        );
-
-        return res.status(201).json({
-            status: true,
-            message: result.rows[0]
-
-        })
+            status
+        } = req.body;
 
 
-    } catch (error) {
-        res.status(500).json({
-            message: err.message
+
+        // Check vehicle exists
+
+        const vehicle = await prisma.vehicle.findUnique({
+
+            where: {
+                id
+            }
+
         });
-    }
-}
 
-const getVehicles = async (req, res) => {
-    const result = await db.query(
-        "SELECT * FROM vehicles ORDER BY id"
-    );
 
-    res.status(201).json({
-        success: true,
-        message: result.rows
-    })
-}
 
-const getVehicle = async (req, res) => {
+        if (!vehicle) {
 
-    const result = await db.query(
-        "SELECT * FROM vehicles WHERE id=$1",
-        [req.params.id]
-    );
-
-    if (result.rows.length === 0) {
-        return res.status(404).json({
-            success: true,
-            message: "Vehicle not found"
-        })
-    }
-
-    res.status(200).json({
-        success: true,
-        message: result.rows[0]
-    })
-}
-
-const updateVehicle = async (req, res) => {
-    const {
-        registration_number,
-        vehicle_name,
-        vehicle_type,
-        max_load_capacity,
-        odometer,
-        acquisition_cost,
-        status
-    } = req.body;
-
-    try {
-        // Check if vehicle exists
-        const vehicle = await db.query(
-            "SELECT * FROM vehicles WHERE id = $1",
-            [req.params.id]
-        );
-
-        if (vehicle.rows.length === 0) {
             return res.status(404).json({
+
                 message: "Vehicle not found"
+
             });
+
         }
 
-        // Check if registration number already exists for another vehicle
-        const existingReg = await db.query(
-            `SELECT * FROM vehicles
-             WHERE registration_number = $1
-             AND id != $2`,
-            [registration_number, req.params.id]
-        );
 
-        if (existingReg.rows.length > 0) {
-            return res.status(400).json({
-                message: "Registration number already exists"
+
+        // Check duplicate registration number
+
+        if (registration_number) {
+
+            const duplicate = await prisma.vehicle.findFirst({
+
+                where: {
+
+                    registration_no: registration_number,
+
+                    NOT: {
+                        id
+                    }
+
+                }
+
             });
+
+
+
+            if (duplicate) {
+
+                return res.status(400).json({
+
+                    message: "Registration number already exists"
+
+                });
+
+            }
+
         }
 
-        const result = await db.query(
-            `UPDATE vehicles
-             SET
-                registration_number = $1,
-                vehicle_name = $2,
-                vehicle_type = $3,
-                max_load_capacity = $4,
-                odometer = $5,
-                acquisition_cost = $6,
-                status = $7
-             WHERE id = $8
-             RETURNING *`,
-            [
-                registration_number,
-                vehicle_name,
-                vehicle_type,
-                max_load_capacity,
-                odometer,
-                acquisition_cost,
-                status,
-                req.params.id
-            ]
-        );
+
+
+
+        const updatedVehicle = await prisma.vehicle.update({
+
+            where: {
+                id
+            },
+
+
+            data: {
+
+                registration_no: registration_number,
+
+                name: vehicle_name,
+
+                type: vehicle_type,
+
+
+                max_load_capacity: max_load_capacity
+                    ? new Prisma.Decimal(max_load_capacity)
+                    : undefined,
+
+
+                odometer: odometer
+                    ? new Prisma.Decimal(odometer)
+                    : undefined,
+
+
+                acquisition_cost: acquisition_cost
+                    ? new Prisma.Decimal(acquisition_cost)
+                    : undefined,
+
+
+                status
+
+            }
+
+        });
+
+
 
         res.status(200).json({
+
             success: true,
+
             message: "Vehicle updated successfully",
-            vehicle: result.rows[0]
+
+            vehicle: updatedVehicle
+
         });
+
+
 
     } catch (error) {
+
+
         res.status(500).json({
+
             success: false,
-            message: err.message
+
+            message: error.message
+
         });
+
+
     }
-}
 
-const deleteVehicle = async (req, res) => {
-    try {
-        // Check if vehicle exists
-        const vehicle = await db.query(
-            "SELECT * FROM vehicles WHERE id = $1",
-            [req.params.id]
-        );
-
-        if (vehicle.rows.length === 0) {
-            return res.status(404).json({
-                message: "Vehicle not found"
-            });
-        }
-
-        await db.query(
-            "DELETE FROM vehicles WHERE id = $1",
-            [req.params.id]
-        );
-
-        res.status(200).json({
-            success: true,
-            message: "Vehicle deleted successfully"
-        });
-
-    } catch (err) {
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-    }
 };
 
 
+
+
+// Delete Vehicle
+const deleteVehicle = async (req, res) => {
+
+    try {
+
+        const id = Number(req.params.id);
+
+
+
+        const vehicle = await prisma.vehicle.findUnique({
+
+            where: {
+                id
+            }
+
+        });
+
+
+
+        if (!vehicle) {
+
+            return res.status(404).json({
+
+                message: "Vehicle not found"
+
+            });
+
+        }
+
+
+
+
+        await prisma.vehicle.delete({
+
+            where: {
+                id
+            }
+
+        });
+
+
+
+        res.status(200).json({
+
+            success: true,
+
+            message: "Vehicle deleted successfully"
+
+        });
+
+
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+
+
 module.exports = {
+
     createVehicle,
+
     getVehicles,
+
     getVehicle,
+
     updateVehicle,
+
     deleteVehicle
-}
+
+};

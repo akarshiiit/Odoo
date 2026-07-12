@@ -1,8 +1,9 @@
 const prisma = require("../config/prisma");
+const { Prisma } = require("@prisma/client");
 
+// Create Driver
 const createDriver = async (req, res) => {
     try {
-
         const {
             name,
             licenseNumber,
@@ -13,26 +14,35 @@ const createDriver = async (req, res) => {
             status
         } = req.body;
 
-        if (safetyScore !== undefined && safetyScore < 0 && safetyScore > 100) {
+
+        // Safety score validation
+        if (
+            safetyScore !== undefined &&
+            (safetyScore < 0 || safetyScore > 100)
+        ) {
             return res.status(400).json({
                 message: "Safety score must be between 0 and 100"
             });
         }
 
-        //Expiry license
+
+        // License expiry validation
         const expiry = new Date(licenseExpiryDate);
+
         if (expiry < new Date()) {
             return res.status(400).json({
                 message: "License already expired"
             });
         }
 
-        //Checking existing License
+
+        // Check duplicate license
         const existing = await prisma.driver.findUnique({
             where: {
-                licenseNumber
+                license_number: licenseNumber
             }
         });
+
 
         if (existing) {
             return res.status(400).json({
@@ -40,30 +50,36 @@ const createDriver = async (req, res) => {
             });
         }
 
+
         const driver = await prisma.driver.create({
             data: {
                 name,
-                licenseNumber,
-                licenseCategory,
-                licenseExpiryDate: expiry,
-                contactNumber,
-                safetyScore: safetyScore ?? 100,
+                license_number: licenseNumber,
+                license_category: licenseCategory,
+                license_expiry: expiry,
+                contact_number: contactNumber,
+                safety_score: new Prisma.Decimal(safetyScore ?? 100),
                 status: status ?? "Available"
             }
         });
+
 
         res.status(201).json({
             message: "Driver created successfully",
             driver
         });
 
+
     } catch (error) {
         res.status(500).json({
-            message: err.message
+            message: error.message
         });
     }
-}
+};
 
+
+
+// Get all drivers
 const getDrivers = async (req, res) => {
     try {
 
@@ -73,22 +89,33 @@ const getDrivers = async (req, res) => {
             }
         });
 
-        res.json(drivers);
 
-    } catch (err) {
+        res.status(200).json(drivers);
+
+
+    } catch (error) {
 
         res.status(500).json({
-            message: err.message
+            message: error.message
         });
 
     }
 };
 
+
+
+// Get single driver
 const getDriver = async (req, res) => {
     try {
+
+        const id = Number(req.params.id);
+
         const driver = await prisma.driver.findUnique({
-            id: Number(req.params.id)
-        })
+            where: {
+                id
+            }
+        });
+
 
         if (!driver) {
             return res.status(404).json({
@@ -96,19 +123,25 @@ const getDriver = async (req, res) => {
             });
         }
 
+
         res.status(200).json({
             success: true,
             driver
-        })
+        });
+
+
     } catch (error) {
 
         res.status(500).json({
-            message: err.message
+            message: error.message
         });
 
     }
-}
+};
 
+
+
+// Update driver
 const updateDriver = async (req, res) => {
 
     try {
@@ -125,9 +158,13 @@ const updateDriver = async (req, res) => {
             status
         } = req.body;
 
+
         const driver = await prisma.driver.findUnique({
-            where: { id }
+            where: {
+                id
+            }
         });
+
 
         if (!driver) {
             return res.status(404).json({
@@ -135,61 +172,85 @@ const updateDriver = async (req, res) => {
             });
         }
 
-        const duplicate = await prisma.driver.findFirst({
-            where: {
-                licenseNumber,
-                NOT: {
-                    id
-                }
-            }
-        });
 
-        if (duplicate) {
-            return res.status(400).json({
-                message: "License number already exists"
+        // Check duplicate license
+        if (licenseNumber) {
+
+            const duplicate = await prisma.driver.findFirst({
+                where: {
+                    license_number: licenseNumber,
+                    NOT: {
+                        id
+                    }
+                }
             });
+
+
+            if (duplicate) {
+                return res.status(400).json({
+                    message: "License number already exists"
+                });
+            }
         }
 
-        const updated = await prisma.driver.update({
 
-            where: { id },
+
+        const updatedDriver = await prisma.driver.update({
+
+            where: {
+                id
+            },
+
 
             data: {
                 name,
-                licenseNumber,
-                licenseCategory,
-                licenseExpiryDate: new Date(licenseExpiryDate),
-                contactNumber,
-                safetyScore,
+                license_number: licenseNumber,
+                license_category: licenseCategory,
+                license_expiry: licenseExpiryDate
+                    ? new Date(licenseExpiryDate)
+                    : undefined,
+                contact_number: contactNumber,
+                safety_score: safetyScore !== undefined
+                    ? new Prisma.Decimal(safetyScore)
+                    : undefined,
                 status
             }
 
         });
 
-        res.json({
+
+        res.status(200).json({
             message: "Driver updated successfully",
-            driver: updated
+            driver: updatedDriver
         });
 
-    } catch (err) {
+
+    } catch (error) {
 
         res.status(500).json({
-            message: err.message
+            message: error.message
         });
 
     }
 
 };
 
+
+
+// Delete driver
 const deleteDriver = async (req, res) => {
 
     try {
 
         const id = Number(req.params.id);
 
+
         const driver = await prisma.driver.findUnique({
-            where: { id }
+            where: {
+                id
+            }
         });
+
 
         if (!driver) {
             return res.status(404).json({
@@ -197,23 +258,30 @@ const deleteDriver = async (req, res) => {
             });
         }
 
+
         await prisma.driver.delete({
-            where: { id }
+            where: {
+                id
+            }
         });
 
-        res.json({
+
+        res.status(200).json({
             message: "Driver deleted successfully"
         });
 
-    } catch (err) {
+
+    } catch (error) {
 
         res.status(500).json({
-            message: err.message
+            message: error.message
         });
 
     }
 
 };
+
+
 
 module.exports = {
     createDriver,
@@ -221,4 +289,4 @@ module.exports = {
     getDriver,
     updateDriver,
     deleteDriver
-}
+};
