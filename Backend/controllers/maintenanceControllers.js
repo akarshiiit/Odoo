@@ -38,6 +38,9 @@ const createMaintenance = async (req, res) => {
                     description,
                     cost: new Prisma.Decimal(cost),
                     status: "Active"
+                },
+                include:{
+                    vehicle: true
                 }
             });
 
