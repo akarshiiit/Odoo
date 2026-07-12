@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id         Int      @id @default(autoincrement())
+  email      String   @unique @db.VarChar(255)
+  password   String   @db.VarChar(255)
+  role       String   @db.VarChar(50)
+  name       String   @db.VarChar(255)
+  created_at DateTime @default(now())
+
+  @@map("users")
+}
+
+model Vehicle {
+  id                  Int      @id @default(autoincrement())
+  registration_no     String   @unique @db.VarChar(100)
+  name                String   @db.VarChar(255)
+  type                String   @db.VarChar(100)
+  max_load_capacity   Decimal  @db.Decimal(10, 2)
+  odometer            Decimal? @default(0) @db.Decimal(10, 2)
+  acquisition_cost    Decimal  @db.Decimal(10, 2)
+  status              String?  @default("Available") @db.VarChar(50)
+  created_at          DateTime @default(now())
+  
+  trips               Trip[]
+  maintenance_logs    MaintenanceLog[]
+  fuel_logs           FuelLog[]
+
+  @@map("vehicles")
+}
+
+model Driver {
+  id               Int      @id @default(autoincrement())
+  name             String   @db.VarChar(255)
+  license_number   String   @unique @db.VarChar(100)
+  license_category String   @db.VarChar(50)
+  license_expiry   DateTime @db.Date
+  contact_number   String   @db.VarChar(50)
+  safety_score     Decimal? @default(100) @db.Decimal(5, 2)
+  status           String?  @default("Available") @db.VarChar(50)
+  created_at       DateTime @default(now())
+
+  trips            Trip[]
+
+  @@map("drivers")
+}
+
+model Trip {
+  id                Int       @id @default(autoincrement())
+  source            String    @db.VarChar(255)
+  destination       String    @db.VarChar(255)
+  cargo_weight      Decimal   @db.Decimal(10, 2)
+  planned_distance  Decimal   @db.Decimal(10, 2)
+  actual_distance   Decimal?  @db.Decimal(10, 2)
+  status            String?   @default("Draft") @db.VarChar(50)
+  vehicle_id        Int?
+  driver_id         Int?
+  created_at        DateTime  @default(now())
+  completed_at      DateTime?
+
+  vehicle           Vehicle?  @relation(fields: [vehicle_id], references: [id])
+  driver            Driver?   @relation(fields: [driver_id], references: [id])
+
+  @@map("trips")
+}
+
+model MaintenanceLog {
+  id           Int       @id @default(autoincrement())
+  vehicle_id   Int?
+  description  String    @db.Text
+  cost         Decimal   @db.Decimal(10, 2)
+  status       String?   @default("Active") @db.VarChar(50)
+  created_at   DateTime  @default(now())
+  completed_at DateTime?
+
+  vehicle      Vehicle?  @relation(fields: [vehicle_id], references: [id])
+
+  @@map("maintenance_logs")
+}
+
+model FuelLog {
+  id         Int       @id @default(autoincrement())
+  vehicle_id Int?
+  liters     Decimal   @db.Decimal(10, 2)
+  cost       Decimal   @db.Decimal(10, 2)
+  date       DateTime? @default(now())
+
+  vehicle    Vehicle?  @relation(fields: [vehicle_id], references: [id])
+
+  @@map("fuel_logs")
+}
