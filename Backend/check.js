@@ -1,1 +1,0 @@
-require('dotenv').config(); const prisma = require('./config/prisma'); prisma.vehicle.findMany().then(v => { console.log(JSON.stringify(v)); process.exit(0); }).catch(e => { console.error(e); process.exit(1); })

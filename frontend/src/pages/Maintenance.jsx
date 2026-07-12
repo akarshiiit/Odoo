@@ -2,19 +2,19 @@ import { useState } from 'react'
 import { GradientBanner, PrimaryBtn, Card } from '../components/UI'
 
 const STATUS_STYLES = {
-  'In Shop':   { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
+  'In Shop': { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
   'Completed': { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
   'Scheduled': { bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' },
 }
 
 const INITIAL_LOGS = [
-  { vehicle: 'VAN-05',   service: 'Oil Change',    cost: '2,500',  date: '01/07/2026', status: 'In Shop'   },
-  { vehicle: 'TRUCK-11', service: 'Engine Repair',  cost: '18,000', date: '05/07/2026', status: 'Completed' },
-  { vehicle: 'MINI-09',  service: 'Tyre Replace',   cost: '6,200',  date: '06/07/2026', status: 'In Shop'   },
+  { vehicle: 'VAN-05', service: 'Oil Change', cost: '2,500', date: '01/07/2026', status: 'In Shop' },
+  { vehicle: 'TRUCK-11', service: 'Engine Repair', cost: '18,000', date: '05/07/2026', status: 'Completed' },
+  { vehicle: 'MINI-09', service: 'Tyre Replace', cost: '6,200', date: '06/07/2026', status: 'In Shop' },
 ]
 
 const VEHICLE_OPTIONS = ['VAN-05', 'TRUCK-11', 'MINI-09', 'VAN-09']
-const SERVICE_TYPES   = ['Oil Change', 'Tyre Rotation', 'Engine Repair', 'Brake Service', 'AC Repair', 'Tyre Replace', 'Other']
+const SERVICE_TYPES = ['Oil Change', 'Tyre Rotation', 'Engine Repair', 'Brake Service', 'AC Repair', 'Tyre Replace', 'Other']
 
 export default function Maintenance() {
   const [logs, setLogs] = useState(INITIAL_LOGS)
@@ -50,28 +50,28 @@ export default function Maintenance() {
           <div className="space-y-3">
             <div>
               <label className={labelCls}>Vehicle</label>
-              <select value={form.vehicle} onChange={e => setForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
+              <select value={form.vehicle} onChange={e => setForm(p => ({ ...p, vehicle: e.target.value }))} className={inputCls + " appearance-none cursor-pointer"}>
                 <option value="">Select vehicle...</option>
                 {VEHICLE_OPTIONS.map(v => <option key={v}>{v}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Service Type</label>
-              <select value={form.service} onChange={e => setForm(p => ({...p, service: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
+              <select value={form.service} onChange={e => setForm(p => ({ ...p, service: e.target.value }))} className={inputCls + " appearance-none cursor-pointer"}>
                 {SERVICE_TYPES.map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
             <div>
               <label className={labelCls}>Cost (₹)</label>
-              <input type="number" value={form.cost} onChange={e => setForm(p => ({...p, cost: e.target.value}))} placeholder="e.g. 2500" className={inputCls} />
+              <input type="number" value={form.cost} onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} placeholder="e.g. 2500" className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Date</label>
-              <input type="date" value={form.date} onChange={e => setForm(p => ({...p, date: e.target.value}))} className={inputCls} />
+              <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Status</label>
-              <select value={form.status} onChange={e => setForm(p => ({...p, status: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
+              <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className={inputCls + " appearance-none cursor-pointer"}>
                 <option>In Shop</option>
                 <option>Completed</option>
                 <option>Scheduled</option>
@@ -86,7 +86,7 @@ export default function Maintenance() {
             <div className="flex items-center gap-2 text-xs">
               <span className="px-2 py-0.5 rounded-full font-bold text-green-700 bg-green-100">Available</span>
               <span className="text-muted-foreground flex items-center gap-1">
-                <svg className="w-8 h-2" viewBox="0 0 40 8"><path d="M0 4 H32 M30 1 L36 4 L30 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+                <svg className="w-8 h-2" viewBox="0 0 40 8"><path d="M0 4 H32 M30 1 L36 4 L30 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg>
                 Log service
               </span>
               <span className="px-2 py-0.5 rounded-full font-bold text-orange-700 bg-orange-100">In Shop</span>
@@ -94,7 +94,7 @@ export default function Maintenance() {
             <div className="flex items-center gap-2 text-xs">
               <span className="px-2 py-0.5 rounded-full font-bold text-orange-700 bg-orange-100">In Shop</span>
               <span className="text-muted-foreground flex items-center gap-1">
-                <svg className="w-8 h-2" viewBox="0 0 40 8"><path d="M0 4 H32 M30 1 L36 4 L30 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+                <svg className="w-8 h-2" viewBox="0 0 40 8"><path d="M0 4 H32 M30 1 L36 4 L30 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" /></svg>
                 Mark complete
               </span>
               <span className="px-2 py-0.5 rounded-full font-bold text-green-700 bg-green-100">Available</span>
