@@ -35,10 +35,12 @@ export default function FuelExpenses() {
 
       // Vehicles
       let vList = []
-      if (vehiclesRes.success && vehiclesRes.vehicles) {
+      if (Array.isArray(vehiclesRes)) {
+        vList = vehiclesRes
+      } else if (vehiclesRes && vehiclesRes.vehicles) {
         vList = vehiclesRes.vehicles
-        setVehicles(vList)
       }
+      setVehicles(vList)
 
       // Fuel Logs
       if (Array.isArray(fuelRes)) {
@@ -240,8 +242,8 @@ export default function FuelExpenses() {
             <div className="space-y-3">
               <div><label className={labelCls}>Vehicle</label>
                 <select value={fuelForm.vehicle} onChange={e => setFuelForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
-                  <option value="">Select vehicle...</option>
-                  {vehicles.map(v => <option key={v.id} value={v.id}>{v.name || v.registration_no || v.id}</option>)}
+                  <option value="" className="text-gray-900 bg-white">Select vehicle...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.id} className="text-gray-900 bg-white">{v.name || v.registration_no || v.id}</option>)}
                 </select>
               </div>
               <div><label className={labelCls}>Date</label><input type="date" value={fuelForm.date} onChange={e => setFuelForm(p => ({...p, date: e.target.value}))} className={inputCls}/></div>
@@ -267,8 +269,8 @@ export default function FuelExpenses() {
               <div><label className={labelCls}>Trip ID</label><input placeholder="e.g. TR001" value={expForm.trip} onChange={e => setExpForm(p => ({...p, trip: e.target.value}))} className={inputCls}/></div>
               <div><label className={labelCls}>Vehicle</label>
                 <select value={expForm.vehicle} onChange={e => setExpForm(p => ({...p, vehicle: e.target.value}))} className={inputCls + " appearance-none cursor-pointer"}>
-                  <option value="">Select vehicle...</option>
-                  {vehicles.map(v => <option key={v.id} value={v.name || v.registration_no || v.id}>{v.name || v.registration_no || v.id}</option>)}
+                  <option value="" className="text-gray-900 bg-white">Select vehicle...</option>
+                  {vehicles.map(v => <option key={v.id} value={v.name || v.registration_no || v.id} className="text-gray-900 bg-white">{v.name || v.registration_no || v.id}</option>)}
                 </select>
               </div>
               <div><label className={labelCls}>Toll (₹)</label><input type="number" placeholder="0" value={expForm.toll} onChange={e => setExpForm(p => ({...p, toll: e.target.value}))} className={inputCls}/></div>
