@@ -11,10 +11,10 @@ const stats = [
 ]
 
 const recentTrips = [
-  { id: "TR-001", vehicle: "VAN-05", driver: "Alex M.",  status: "On Trip",    statusBg: "#dbeafe", statusColor: "#1d4ed8", eta: "45 min" },
-  { id: "TR-002", vehicle: "TRK-12", driver: "John D.",  status: "Completed",  statusBg: "#dcfce7", statusColor: "#15803d", eta: "—"      },
-  { id: "TR-003", vehicle: "MINI-08",driver: "Priya S.", status: "Dispatched", statusBg: "#ffedd5", statusColor: "#c2410c", eta: "In 1hr" },
-  { id: "TR-004", vehicle: "—",       driver: "—",        status: "Draft",      statusBg: "#f3f4f6", statusColor: "#6b7280", eta: "Awaiting" },
+  { id: "TR-001", vehicle: "VAN-05", driver: "Alex M.",  status: "On Trip",    statusColor: "#3b82f6", eta: "45 min" },
+  { id: "TR-002", vehicle: "TRK-12", driver: "John D.",  status: "Completed",  statusColor: "#22c55e", eta: "—"      },
+  { id: "TR-003", vehicle: "MINI-08",driver: "Priya S.", status: "Dispatched", statusColor: "#f97316", eta: "In 1hr" },
+  { id: "TR-004", vehicle: "—",       driver: "—",        status: "Draft",      statusColor: "#6b7280", eta: "Awaiting" },
 ]
 
 const vehicleStatus = [
@@ -35,7 +35,7 @@ export default function Dashboard() {
       <div className="flex flex-wrap gap-2">
         {["Vehicle Type: All", "Status: All", "Region: All"].map(f => (
           <select key={f}
-            className="text-xs font-medium px-3 py-2 rounded-lg border border-border bg-white text-foreground cursor-pointer appearance-none hover:border-primary transition-colors"
+            className="text-xs font-medium px-3 py-2 rounded-lg border border-border bg-card text-foreground cursor-pointer appearance-none hover:border-primary transition-colors"
           >
             <option>{f}</option>
           </select>
@@ -46,9 +46,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         {stats.map((s, i) => (
           <div key={i}
-            className="bg-white rounded-xl border border-border p-4 flex flex-col gap-2 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default"
+            className="bg-card rounded-xl border border-border p-4 flex flex-col gap-2 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default"
           >
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: s.light }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: s.color + '15' }}>
               <svg className="w-5 h-5" style={{ color: s.color }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={s.icon} />
               </svg>
@@ -85,7 +85,7 @@ export default function Dashboard() {
                     <td className="px-5 py-3 text-foreground font-medium">{t.vehicle}</td>
                     <td className="px-5 py-3 text-foreground">{t.driver}</td>
                     <td className="px-5 py-3">
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: t.statusBg, color: t.statusColor }}>
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold" style={{ backgroundColor: t.statusColor + '20', color: t.statusColor }}>
                         {t.status}
                       </span>
                     </td>

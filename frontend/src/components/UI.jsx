@@ -2,7 +2,7 @@
 export const GradientBanner = ({ title, subtitle, children }) => (
   <div
     className="rounded-2xl px-6 py-5 text-white relative overflow-hidden shadow-md mb-6"
-    style={{ background: 'linear-gradient(90deg, #714b67, #432c3d)' }}
+    style={{ background: '#432c3d' }}
   >
     <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10 pointer-events-none"
       style={{ background: 'radial-gradient(circle, #fff, transparent 70%)' }} />
@@ -37,7 +37,7 @@ export const PrimaryBtn = ({ children, onClick, disabled, full }) => (
 )
 
 export const Card = ({ children, className = '' }) => (
-  <div className={`bg-white border border-border rounded-xl shadow-sm ${className}`}>{children}</div>
+  <div className={`bg-card border border-border rounded-xl shadow-sm ${className}`}>{children}</div>
 )
 
 export const CardHeader = ({ children }) => (
