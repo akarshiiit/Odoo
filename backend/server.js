@@ -6,6 +6,7 @@ const vehicleRouter = require('./routes/vehicleRoutes')
 const driverRoutes = require('./routes/driverRoutes')
 const tripRoutes = require('./routes/tripsRoute');
 const fuelRoutes = require('./routes/fuelRoute');
+const maintenanceRoutes = require('./routes/maintenanceRoutes')
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -14,9 +15,9 @@ app.use(express.json());
 
 app.use('/vehicles', vehicleRouter);
 app.use('/driver', driverRoutes);
-
 app.use('/trips', tripRoutes);
 app.use('/fuel', fuelRoutes);
+app.use('/maintenance', maintenanceRoutes);
 
 app.get('/api/check', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running!' });

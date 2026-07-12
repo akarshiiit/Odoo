@@ -72,6 +72,7 @@ model Trip {
   @@map("trips")
 }
 
+
 model MaintenanceLog {
   id           Int       @id @default(autoincrement())
   vehicle_id   Int?
