@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GradientBanner, PrimaryBtn, Card } from '../components/UI'
+import { getVehicles } from '../services/vehicleService'
 
 const STATUS_STYLES = {
   'Available': { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
