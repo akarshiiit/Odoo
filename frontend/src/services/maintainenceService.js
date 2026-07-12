@@ -1,11 +1,11 @@
 import api from "./api";
 
 export const getMaintainenceLogs = async () => {
-    return await api('/maintainence');
+    return await api('/maintenance');
 }
 
 export const getMaintainenceLogById = async (id) => {
-    return await api(`/maintainence/${id}`);
+    return await api(`/maintenance/${id}`);
 }
 
 export const createMaintenance = async (data) => {

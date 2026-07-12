@@ -1,8 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GradientBanner, PrimaryBtn, Card } from '../components/UI'
+import { getVehicles } from "../services/vehicleService";
+import {
+  getMaintainenceLogs,
+  createMaintenance,
+  completeMaintenance
+} from "../services/maintainenceService";
 
 const STATUS_STYLES = {
   'In Shop': { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
+  'Active': { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' },
   'Completed': { bg: '#dcfce7', color: '#15803d', border: '#86efac' },
   'Scheduled': { bg: '#dbeafe', color: '#1d4ed8', border: '#93c5fd' },
 }
@@ -17,27 +24,117 @@ const VEHICLE_OPTIONS = ['VAN-05', 'TRUCK-11', 'MINI-09', 'VAN-09']
 const SERVICE_TYPES = ['Oil Change', 'Tyre Rotation', 'Engine Repair', 'Brake Service', 'AC Repair', 'Tyre Replace', 'Other']
 
 export default function Maintenance() {
-  const [logs, setLogs] = useState(INITIAL_LOGS)
+  const [logs, setLogs] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ vehicle: '', service: 'Oil Change', cost: '', date: '', status: 'In Shop' })
   const [saved, setSaved] = useState(false)
 
-  function handleSave() {
-    if (!form.vehicle || !form.cost || !form.date) return
-    setLogs(prev => [{ ...form }, ...prev])
-    setForm({ vehicle: '', service: 'Oil Change', cost: '', date: '', status: 'In Shop' })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  useEffect(() => {
+
+    fetchData();
+
+  }, []);
+
+  // To fetch data
+  const fetchData = async () => {
+
+    try {
+
+      const logsResponse = await getMaintainenceLogs();
+      const vehiclesResponse = await getVehicles();
+
+      setLogs(logsResponse.logs);
+      setVehicles(vehiclesResponse.vehicles);
+    }
+
+    catch (error) {
+      console.log(error);
+    }
+
+    finally {
+      setLoading(false);
+    }
+
   }
 
-  function toggleStatus(idx) {
-    setLogs(prev => prev.map((l, i) => i === idx
-      ? { ...l, status: l.status === 'In Shop' ? 'Completed' : 'In Shop' }
-      : l
-    ))
+  async function handleSave() {
+
+    try {
+
+      const payload = {
+
+        vehicle_id: Number(form.vehicle),
+        description: form.service,
+        cost: Number(form.cost)
+
+      };
+
+      const response = await createMaintenance(payload);
+
+      setLogs(prev => [
+        response.maintenance,
+        ...prev
+      ]);
+
+      const updatedVehicles = await getVehicles();
+      setVehicles(updatedVehicles);
+
+      setForm({
+        vehicle: '',
+        service: 'Oil Change',
+        cost: '',
+        date: '',
+        status: 'Active'
+      });
+
+      setSaved(true);
+
+      setTimeout(() => {
+        setSaved(false);
+      }, 2500);
+
+    }
+    catch (error) {
+
+      console.log(error);
+    }
+  }
+
+  async function completeLog(id) {
+
+    try {
+
+      const response =
+        await completeMaintenance(id);
+
+      setLogs(prev =>
+        prev.map(log =>
+          log.id === id
+            ? response.maintenance
+            : log
+        )
+      );
+
+    }
+    catch (error) {
+
+      console.log(error);
+
+    }
+
   }
 
   const inputCls = "block w-full px-3 py-2.5 border border-border rounded-lg text-sm text-foreground bg-white placeholder:text-muted-foreground focus:outline-none hover:border-primary/40 transition-colors"
   const labelCls = "block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider"
+
+  if (loading) {
+    return (
+      <p className="text-center">
+        Loading maintenance logs...
+      </p>
+    )
+  }
 
   return (
     <section className="space-y-5">
@@ -52,7 +149,13 @@ export default function Maintenance() {
               <label className={labelCls}>Vehicle</label>
               <select value={form.vehicle} onChange={e => setForm(p => ({ ...p, vehicle: e.target.value }))} className={inputCls + " appearance-none cursor-pointer"}>
                 <option value="">Select vehicle...</option>
-                {VEHICLE_OPTIONS.map(v => <option key={v}>{v}</option>)}
+                {vehicles
+                  .filter(v => v.status === "Available")
+                  .map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>
@@ -124,19 +227,25 @@ export default function Maintenance() {
                 {logs.length === 0 ? (
                   <tr><td colSpan={5} className="px-5 py-10 text-center text-muted-foreground text-sm">No service logs yet. Add one from the form.</td></tr>
                 ) : logs.map((l, i) => {
-                  const s = STATUS_STYLES[l.status] || STATUS_STYLES['Completed']
+                  const displayStatus = l.status === "Active"
+                    ? "In Shop"
+                    : l.status;
+
+                  const s = STATUS_STYLES[displayStatus] || STATUS_STYLES['Completed'];
                   return (
                     <tr key={i} className="border-b border-border/50 hover:bg-secondary/10 transition-colors">
-                      <td className="px-5 py-3 font-semibold" style={{ color: '#714b67' }}>{l.vehicle}</td>
-                      <td className="px-5 py-3 text-foreground">{l.service}</td>
+                      <td className="px-5 py-3 font-semibold" style={{ color: '#714b67' }}>{l.vehicle?.name || 'Unknown'}</td>
+                      <td className="px-5 py-3 text-foreground">{l.description}</td>
                       <td className="px-5 py-3 font-semibold text-foreground">₹{l.cost}</td>
-                      <td className="px-5 py-3 text-muted-foreground text-xs">{l.date}</td>
+                      <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(l.created_at).toLocaleDateString()}</td>
                       <td className="px-5 py-3">
-                        <button onClick={() => toggleStatus(i)}
+                        <button 
+                          disabled={l.status==="Completed"}
+                          onClick={() => completeLog(l.id)}
                           className="px-3 py-1 rounded-full text-xs font-bold border transition-all hover:opacity-80 cursor-pointer"
                           style={{ background: s.bg, color: s.color, borderColor: s.border }}
                           title="Click to toggle status">
-                          {l.status}
+                          {l.status === "Active" ? "In Shop" : l.status}
                         </button>
                       </td>
                     </tr>
