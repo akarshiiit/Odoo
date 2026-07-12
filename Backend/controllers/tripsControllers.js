@@ -24,8 +24,8 @@ exports.createTrip = async (req, res) => {
 
   try {
     const [vehicle, driver] = await Promise.all([
-      prisma.vehicle.findUnique({ where: { id: vehicleId } }),
-      prisma.driver.findUnique({ where: { id: driverId } }),
+      prisma.vehicle.findUnique({ where: { id: parseInt(vehicleId) } }),
+      prisma.driver.findUnique({ where: { id: parseInt(driverId) } }),
     ]);
 
     if (!vehicle) return res.status(404).json({ success: false, error: 'Vehicle not found' });
@@ -37,13 +37,13 @@ exports.createTrip = async (req, res) => {
     if (['Suspended', 'On Trip'].includes(driver.status)) {
       return res.status(400).json({ success: false, error: `Driver is ${driver.status}` });
     }
-    if (new Date(driver.licenseExpiry) < new Date()) {
+    if (new Date(driver.license_expiry) < new Date()) {
       return res.status(400).json({ success: false, error: 'Driver license expired' });
     }
-    if (parseFloat(cargoWeight) > parseFloat(vehicle.maxLoadCapacity)) {
+    if (parseFloat(cargoWeight) > parseFloat(vehicle.max_load_capacity)) {
       return res.status(400).json({
         success: false,
-        error: `Cargo weight ${cargoWeight}kg exceeds capacity ${vehicle.maxLoadCapacity}kg`,
+        error: `Cargo weight ${cargoWeight}kg exceeds capacity ${vehicle.max_load_capacity}kg`,
       });
     }
 
@@ -85,9 +85,9 @@ exports.completeTrip = async (req, res) => {
     const [updated] = await prisma.$transaction([
       prisma.trip.update({
         where: { id },
-        data: { status: 'Completed', completedAt: new Date(), actualDistance: actualDistance || trip.plannedDistance },
+        data: { status: 'Completed', completed_at: new Date(), actual_distance: actualDistance || trip.planned_distance },
       }),
-      ...restore(trip.vehicleId, trip.driverId),
+      ...restore(trip.vehicle_id, trip.driver_id),
     ]);
 
     res.json({ success: true, trip: updated });
@@ -109,7 +109,7 @@ exports.cancelTrip = async (req, res) => {
 
     const [updated] = await prisma.$transaction([
       prisma.trip.update({ where: { id }, data: { status: 'Cancelled' } }),
-      ...restore(trip.vehicleId, trip.driverId),
+      ...restore(trip.vehicle_id, trip.driver_id),
     ]);
 
     res.json({ success: true, trip: updated });
