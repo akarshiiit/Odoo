@@ -2,27 +2,20 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import { useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Layout from "./components/Layout";
 
 import Login from "./pages/auth/Login";
 import Signup from "./pages/auth/Signup";
-/* ------------------------------------------------------------------ */
-/*  Temporary placeholder pages                                       */
-/*  Replace these with real page components as they get built out.    */
-/* ------------------------------------------------------------------ */
+import Dashboard from "./pages/Dashboard";
+import Vehicles from "./pages/Vehicles";
+import Drivers from "./pages/Drivers";
+import Trips from "./pages/Trips";
+import Maintenance from "./pages/Maintenance";
+import FuelExpenses from "./pages/FuelExpenses";
+import Analytics from "./pages/Analytics";
+import Settings from "./pages/Settings";
 
-const PagePlaceholder = ({ title }) => (
-  <div style={{ padding: "2rem" }}>
-    <h1>{title}</h1>
-    <p>This page is under construction.</p>
-  </div>
-);
-
-const Dashboard = () => <PagePlaceholder title="Dashboard" />;
-const Vehicles = () => <PagePlaceholder title="Vehicles" />;
-const Drivers = () => <PagePlaceholder title="Drivers" />;
-const Trips = () => <PagePlaceholder title="Trips" />;
-const Maintenance = () => <PagePlaceholder title="Maintenance" />;
-const Reports = () => <PagePlaceholder title="Reports" />;
+// (real pages imported above)
 
 
 const RootRedirect = () => {
@@ -40,60 +33,26 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
 
-      {/* Protected routes */}
+      {/* Protected routes wrapped by Layout (shows sidebar/header) */}
       <Route
-        path="/dashboard"
+        path="/*"
         element={
           <ProtectedRoute>
-            <Dashboard />
+            <Layout />
           </ProtectedRoute>
         }
-      />
-
-      <Route
-        path="/vehicles"
-        element={
-          <ProtectedRoute allowedRoles={["Fleet Manager"]}>
-            <Vehicles />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/drivers"
-        element={
-          <ProtectedRoute allowedRoles={["Safety Officer"]}>
-            <Drivers />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/trips"
-        element={
-          <ProtectedRoute allowedRoles={["Driver"]}>
-            <Trips />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/maintenance"
-        element={
-          <ProtectedRoute allowedRoles={["Fleet Manager"]}>
-            <Maintenance />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/reports"
-        element={
-          <ProtectedRoute allowedRoles={["Fleet Manager", "Financial Analyst"]}>
-            <Reports />
-          </ProtectedRoute>
-        }
-      />
+      >
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="vehicles" element={<Vehicles />} />
+        <Route path="drivers" element={<Drivers />} />
+        <Route path="trips" element={<Trips />} />
+        <Route path="maintenance" element={<Maintenance />} />
+        <Route path="fuel-expenses" element={<FuelExpenses />} />
+        <Route path="analytics" element={<Analytics />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="reports" element={<Analytics />} />
+      </Route>
 
       {/* Unknown routes -> redirect to "/" (which itself resolves by auth state) */}
       <Route path="*" element={<Navigate to="/" replace />} />

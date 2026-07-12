@@ -49,10 +49,18 @@ exports.createTrip = async (req, res) => {
 
     const trip = await prisma.$transaction(async (tx) => {
       const newTrip = await tx.trip.create({
-        data: { source, destination, cargoWeight, plannedDistance, vehicleId, driverId, status: 'Dispatched' },
+        data: { 
+          source, 
+          destination, 
+          cargo_weight: parseFloat(cargoWeight), 
+          planned_distance: parseFloat(plannedDistance), 
+          vehicle: { connect: { id: parseInt(vehicleId) } }, 
+          driver: { connect: { id: parseInt(driverId) } }, 
+          status: 'Dispatched' 
+        },
       });
-      await tx.vehicle.update({ where: { id: vehicleId }, data: { status: 'On Trip' } });
-      await tx.driver.update({ where: { id: driverId }, data: { status: 'On Trip' } });
+      await tx.vehicle.update({ where: { id: parseInt(vehicleId) }, data: { status: 'On Trip' } });
+      await tx.driver.update({ where: { id: parseInt(driverId) }, data: { status: 'On Trip' } });
       return newTrip;
     });
 
